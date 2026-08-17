@@ -4,7 +4,7 @@ import pandas as pd
 
 class InventoryEnv:
     MAX_INVENTORY = 1000.0
-    MAX_ORDER = 300.0
+    MAX_ORDER = 200.0
     EPISODE_LENGTH = 365  
     CH_RATE = 0.20 
 
@@ -86,7 +86,7 @@ class InventoryEnv:
         holding_cost = next_inventory * ch
         stockout_cost = lost_sales * cp
 
-        reward = (revenue - holding_cost - stockout_cost) / 1000.0
+        reward = (revenue - holding_cost - stockout_cost) / 100.0
 
         self.inventory = next_inventory
         self.t += 1
