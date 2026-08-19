@@ -1,5 +1,4 @@
 """
-utils.py - VERSION CORRIGEE
 Fonctions utilitaires pour visualisation et analyse
 
 CORRECTIONS APPLIQUEES:
