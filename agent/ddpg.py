@@ -1,4 +1,5 @@
 """
+agent/ddpg.py - VERSION CORRIGEE
 Agent DDPG avec corrections de stabilite et d'interface
 
 CORRECTIONS APPLIQUEES:
