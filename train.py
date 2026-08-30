@@ -1,7 +1,6 @@
 """
-
-
-train.py
+train.py - VERSION CORRIGEE
+Script d'entraînement de l'agent DDPG
 
 CORRECTIONS APPLIQUEES:
 
