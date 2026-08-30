@@ -213,3 +213,27 @@ python train.py --episodes 500 --batch_size 128 --warmup_steps 1000 --seed 42
 ```
 
 Les modèles entraînés et les résultats sont sauvegardés dans le répertoire `results/`.
+## Évaluation
+
+L'évaluation permet de mesurer les performances de la politique apprise par l'agent DDPG et de les comparer à différentes politiques de référence.
+
+L'évaluation est réalisée à l'aide du fichier `evaluate.py`.
+
+Plusieurs politiques peuvent être utilisées comme référence :
+
+* **Greedy Policy** : commande une quantité fixe lorsque le niveau de stock devient inférieur à un seuil défini ;
+* **Forecast Matching** : ajuste la quantité commandée en fonction de la prévision de la demande ;
+* **Random Policy** : choisit aléatoirement la quantité à commander dans l'intervalle autorisé.
+
+Les performances sont évaluées à partir de plusieurs indicateurs, notamment :
+
+* le coût total moyen ;
+* le coût moyen de stockage ;
+* le coût moyen des commandes ;
+* le coût moyen des ruptures de stock ;
+* la récompense moyenne ;
+* les ventes et les ruptures de stock.
+
+L'objectif est de vérifier si la politique apprise par DDPG permet d'obtenir de meilleures performances que les politiques de référence.
+
+Les résultats peuvent également être représentés graphiquement afin d'analyser l'évolution des stocks, des commandes et des différents coûts au cours des épisodes.
