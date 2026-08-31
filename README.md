@@ -1,122 +1,239 @@
-# Etape 1 : Modélisation de l Environnement MDP
+# Inventory-RL
 
-## Description
+## Optimisation de la gestion des stocks par Reinforcement Learning
 
-Cette etape concerne la modelisation de l'environnement
-de gestion de stock sous forme de MDP (Markov Decision Process)
-et son implementation avec Gymnasium.
+Inventory-RL est un projet d'optimisation de la gestion des stocks utilisant l'apprentissage par renforcement (*Reinforcement Learning*).
 
-## Dataset
+L'objectif est de développer un agent intelligent capable de déterminer la quantité de produits à commander en fonction de l'état actuel du stock et de la demande prévue, afin d'améliorer la gestion des stocks et de réduire les coûts associés.
 
-**Source** : Retail Store Inventory Forecasting Dataset - Kaggle
+## Objectif du projet
 
-| Caracteristique | Valeur |
-|----------------|--------|
-| Nombre de lignes | 73 100 |
-| Nombre de colonnes | 15 |
-| Valeurs manquantes | 0 |
-| Periode | 2022-01-01 au 2024-01-01 |
+La gestion des stocks consiste à déterminer les quantités à commander afin de répondre à la demande tout en limitant les coûts liés au stockage et aux ruptures de stock.
 
-## Analyse Exploratoire
+Dans ce projet, nous formulons la gestion des stocks comme un problème d'apprentissage par renforcement.
 
-Le notebook `notebooks/01_exploration.ipynb` contient
-l'analyse complete du dataset et la justification
-de chaque composante du MDP.
+L'agent apprend progressivement à prendre des décisions de réapprovisionnement à partir de l'état du stock et de la prévision de la demande.
 
-## MDP - Choix et Justifications
+L'objectif de l'agent est de trouver une politique de commande permettant de maximiser la récompense cumulée, tout en recherchant un compromis entre :
 
-### Etats
+* la satisfaction de la demande ;
+* les coûts de stockage ;
+* les coûts liés aux ruptures de stock ;
+* les coûts de commande.
 
-Apres l'analyse exploratoire deux variables ont montre
-une relation suffisamment informative avec les ventes
-pour etre retenues comme etats dans cette premiere
-version de l environnement :
+L'algorithme **DDPG (Deep Deterministic Policy Gradient)** est utilisé pour apprendre cette politique de décision dans un espace d'actions continues.
 
-| Variable | Correlation | Justification |
-|----------|-------------|---------------|
-| Inventory Level | 0.59 | Contrainte physique : on ne peut pas vendre plus que le stock disponible |
-| Demand Forecast | 0.99 | Variable la plus informative du dataset |
+## Données utilisées
 
-Les autres variables ont presente une faible contribution
-dans les analyses exploratoires et n ont pas ete retenues.
+Le projet utilise un jeu de données de gestion des stocks situé dans le répertoire `data/`.
 
-Note : ce choix est specifique a ce dataset synthetique
-et pourrait etre different avec des donnees reelles.
+Le fichier principal est :
 
-### Actions
-
-| Parametre | Valeur | Justification |
-|-----------|--------|---------------|
-| Type | Continue | Distribution uniforme de Units Ordered sans paliers fixes |
-| Minimum | 0 | L agent peut ne rien commander |
-| Maximum | 200 | Valeur maximale observee dans le dataset |
-| Algorithme | DDPG | Actions continues → DDPG plus adapte que DQN |
-
-### Fonction de Recompense
-
-Basee sur le Newsvendor Problem (Oroojlooyjadid et al. 2017)
-Source : https://arxiv.org/pdf/1607.02177
-
-```
-R = Price x min(d, s) - ch x max(s-d, 0) - cp x max(d-s, 0)
-
-cp = Price  (perte directe du prix de vente en cas de rupture)
-ch = 0.20 x Price  (contrainte ch < cp du Newsvendor Problem)
+```text
+data/retail_store_inventory.csv
 ```
 
-### Fin d Episode
+Les données contiennent notamment des informations relatives aux magasins, aux produits, aux niveaux de stock, aux ventes, aux prix et aux prévisions de demande.
 
-| Parametre | Valeur | Justification |
-|-----------|--------|---------------|
-| Duree | 365 jours | Couvre les 4 saisons du dataset sur un cycle annuel complet |
+Les principales variables exploitées par l'environnement sont :
 
-## Limites
+* **Store ID** : identifiant du magasin ;
+* **Product ID** : identifiant du produit ;
+* **Date** : date de l'observation ;
+* **Inventory Level** : niveau de stock disponible ;
+* **Demand Forecast** : prévision de la demande ;
+* **Units Sold** : quantité vendue ;
+* **Price** : prix du produit.
 
-- Le dataset est synthetique et ne reproduit pas parfaitement
-  la variabilite d un systeme reel de gestion de stock
-- Les choix d etats sont specifiques a ce dataset
-  et pourraient etre differents avec des donnees reelles
-- La correlation de 0.99 de Demand Forecast est une
-  caracteristique du dataset synthetique
-  et doit etre interpretee avec prudence
+Ces données permettent de simuler les décisions de réapprovisionnement au cours du temps et de mesurer leurs conséquences sur les ventes, le stock et les coûts.
 
-## Resultats des Tests
+## Environnement de gestion des stocks
 
-| Test | Resultat |
-|------|---------|
-| Chargement | OK |
-| reset() | Stock initial : 231.0 |
-| step() | Stock mis a jour reellement |
-| Episode complet | 365 jours |
+L'environnement de gestion des stocks est défini dans le fichier :
 
-## Utilisation
-
-```python
-from env.inventory_env import load_env
-import numpy as np
-
-# Charger l environnement
-env = load_env()
-
-# Reinitialiser
-obs, _ = env.reset()
-
-# Faire une action
-action = np.array([50.0])
-obs, recompense, termine, _, _ = env.step(action)
+```text
+env/inventory_env.py
 ```
 
-## Fichiers
+Il représente le système dans lequel l'agent DDPG prend ses décisions de réapprovisionnement.
 
+L'environnement est constitué de trois éléments principaux :
+
+### État
+
+À chaque étape, l'agent observe deux informations :
+
+* le niveau de stock actuel ;
+* la prévision de la demande.
+
+L'état est donc représenté sous la forme :
+
+```text
+[stock actuel, demande prévue]
 ```
-env/
-└── inventory_env.py      ← Implementation de InventoryEnv
 
-notebooks/
-└── 01_exploration.ipynb  ← Analyse et justification du MDP
+Lorsque la normalisation est activée, ces valeurs sont ramenées dans un intervalle adapté à l'apprentissage du réseau de neurones.
+
+### Action
+
+L'action correspond à la quantité de produits que l'agent décide de commander.
+
+L'espace d'action est continu et la quantité commandée est limitée à :
+
+```text
+0 ≤ quantité commandée ≤ 200
 ```
 
-## References
+L'utilisation d'un espace d'actions continues justifie l'utilisation de l'algorithme DDPG.
 
-- Oroojlooyjadid et al. 2017 - Applying Deep Learning to the Newsvendor Problem
-  https://arxiv.org/pdf/1607.02177
+### Récompense
+
+Après chaque décision de commande, l'environnement simule la satisfaction de la demande et calcule les conséquences de cette décision.
+
+La récompense prend en compte :
+
+* le revenu généré par les ventes ;
+* le coût de stockage ;
+* le coût des ruptures de stock.
+
+La récompense est calculée selon le principe :
+
+```text
+Récompense = Revenu - Coût de stockage - Coût de rupture
+```
+
+Cette récompense permet à l'agent d'apprendre quelles décisions de commande sont les plus intéressantes à long terme.
+
+### Épisode
+
+Un épisode représente une période de simulation de gestion des stocks pouvant aller jusqu'à **365 jours**.
+
+À chaque jour, l'agent :
+
+1. observe l'état du stock ;
+2. choisit une quantité à commander ;
+3. fait face à la demande ;
+4. reçoit une récompense ;
+5. passe à l'état suivant.
+
+Le processus est répété jusqu'à la fin de l'épisode.
+## Structure du projet
+
+Le projet est organisé de la manière suivante :
+
+```text
+inventory-rl/
+│
+├── agent/
+│   └── ddpg.py
+│
+├── data/
+│   └── retail_store_inventory.csv
+│
+├── env/
+│   └── inventory_env.py
+│
+├── notebooks/
+│   ├── 01_exploration.ipynb
+│   ├── 02_agent.ipynb
+│   └── 03_evaluation.ipynb
+│
+├── evaluate.py
+├── train.py
+├── utils.py
+├── requirements.txt
+└── README.md
+```
+
+### Description des principaux fichiers
+
+* **`env/inventory_env.py`** : définit l'environnement de gestion des stocks et les règles de simulation.
+* **`agent/ddpg.py`** : contient l'implémentation de l'agent DDPG chargé d'apprendre la politique de réapprovisionnement.
+* **`train.py`** : permet d'entraîner l'agent sur plusieurs épisodes.
+* **`evaluate.py`** : contient les outils permettant d'évaluer les performances de la politique apprise et de la comparer à des politiques de référence.
+* **`utils.py`** : regroupe les fonctions utilitaires, notamment pour le traitement et la visualisation des résultats.
+* **`data/retail_store_inventory.csv`** : jeu de données utilisé pour simuler la gestion des stocks.
+* **`notebooks/01_exploration.ipynb`** : exploration et analyse des données.
+* **`notebooks/02_agent.ipynb`** : expérimentation et entraînement de l'agent.
+* **`notebooks/03_evaluation.ipynb`** : évaluation des performances de l'agent.
+* **`requirements.txt`** : liste des bibliothèques nécessaires au fonctionnement du projet.
+* **`README.md`** : documentation générale du projet.
+## Installation
+
+### 1. Cloner le projet
+
+```bash
+git clone https://github.com/Djifa02/inventory-rl.git
+cd inventory-rl
+```
+
+### 2. Créer un environnement virtuel
+
+```bash
+python -m venv .venv
+```
+
+Sous Windows, activer l'environnement :
+
+```powershell
+.venv\Scripts\activate
+```
+
+### 3. Installer les dépendances
+
+```bash
+pip install -r requirements.txt
+```
+
+## Entraînement
+
+L'entraînement de l'agent DDPG est réalisé à l'aide du fichier `train.py`.
+
+Pour lancer un entraînement avec les paramètres par défaut :
+
+```bash
+python train.py
+```
+
+Les principaux paramètres disponibles sont :
+
+* `--episodes` : nombre d'épisodes d'entraînement ;
+* `--batch_size` : taille des lots utilisés pour l'apprentissage ;
+* `--warmup_steps` : nombre de pas avant le début de l'apprentissage ;
+* `--seed` : graine utilisée pour assurer la reproductibilité ;
+* `--store_id` : identifiant du magasin à utiliser ;
+* `--product_id` : identifiant du produit à utiliser ;
+* `--save_dir` : répertoire de sauvegarde des résultats ;
+* `--device` : périphérique utilisé (`cpu`, `cuda` ou `auto`).
+
+Exemple :
+
+```bash
+python train.py --episodes 500 --batch_size 128 --warmup_steps 1000 --seed 42
+```
+
+Les modèles entraînés et les résultats sont sauvegardés dans le répertoire `results/`.
+## Évaluation
+
+L'évaluation permet de mesurer les performances de la politique apprise par l'agent DDPG et de les comparer à différentes politiques de référence.
+
+L'évaluation est réalisée à l'aide du fichier `evaluate.py`.
+
+Plusieurs politiques peuvent être utilisées comme référence :
+
+* **Greedy Policy** : commande une quantité fixe lorsque le niveau de stock devient inférieur à un seuil défini ;
+* **Forecast Matching** : ajuste la quantité commandée en fonction de la prévision de la demande ;
+* **Random Policy** : choisit aléatoirement la quantité à commander dans l'intervalle autorisé.
+
+Les performances sont évaluées à partir de plusieurs indicateurs, notamment :
+
+* le coût total moyen ;
+* le coût moyen de stockage ;
+* le coût moyen des commandes ;
+* le coût moyen des ruptures de stock ;
+* la récompense moyenne ;
+* les ventes et les ruptures de stock.
+
+L'objectif est de vérifier si la politique apprise par DDPG permet d'obtenir de meilleures performances que les politiques de référence.
+
+Les résultats peuvent également être représentés graphiquement afin d'analyser l'évolution des stocks, des commandes et des différents coûts au cours des épisodes.
